@@ -424,6 +424,7 @@ NET_MAN=${NET_MAN:-FlatDHCPManager}
 EC2_DMZ_HOST=${EC2_DMZ_HOST:-$SERVICE_HOST}
 FLAT_NETWORK_BRIDGE=${FLAT_NETWORK_BRIDGE:-$FLAT_NETWORK_BRIDGE_DEFAULT}
 VLAN_INTERFACE=${VLAN_INTERFACE:-$GUEST_INTERFACE_DEFAULT}
+FORCE_DHCP_RELEASE=${FORCE_DHCP_RELEASE:-True}
 
 # Test floating pool and range are used for testing.  They are defined
 # here until the admin APIs can replace nova-manage
@@ -1854,6 +1855,7 @@ elif [ -n "$RABBIT_HOST" ] &&  [ -n "$RABBIT_PASSWORD" ]; then
     add_nova_opt "rabbit_password=$RABBIT_PASSWORD"
 fi
 add_nova_opt "glance_api_servers=$GLANCE_HOSTPORT"
+add_nova_opt "force_dhcp_release=$FORCE_DHCP_RELEASE"
 
 # XenServer
 # ---------
@@ -1878,6 +1880,11 @@ elif [ "$VIRT_DRIVER" = 'openvz' ]; then
     #             add_nova_opt "compute_driver=openvz.connection.OpenVzConnection"
     add_nova_opt "connection_type=openvz"
     LIBVIRT_FIREWALL_DRIVER=${LIBVIRT_FIREWALL_DRIVER:-"nova.virt.libvirt.firewall.IptablesFirewallDriver"}
+    add_nova_opt "firewall_driver=$LIBVIRT_FIREWALL_DRIVER"
+elif [ "$VIRT_DRIVER" = 'baremetal' ]; then
+    echo_summary "Using BareMetal driver"
+    add_nova_opt "compute_driver=baremetal.BareMetalDriver"
+    LIBVIRT_FIREWALL_DRIVER=${LIBVIRT_FIREWALL_DRIVER:-"nova.virt.firewall.NoopFirewallDriver"}
     add_nova_opt "firewall_driver=$LIBVIRT_FIREWALL_DRIVER"
 else
     echo_summary "Using libvirt virtualization driver"
