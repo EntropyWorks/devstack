@@ -413,6 +413,14 @@ if [ "$VIRT_DRIVER" = 'xenserver' ]; then
     # Allow ``build_domU.sh`` to specify the flat network bridge via kernel args
     FLAT_NETWORK_BRIDGE_DEFAULT=$(grep -o 'flat_network_bridge=[[:alnum:]]*' /proc/cmdline | cut -d= -f 2 | sort -u)
     GUEST_INTERFACE_DEFAULT=eth1
+elif [ "$VIRT_DRIVER" = 'baremetal' ]; then
+    PUBLIC_INTERFACE_DEFAULT=eth0
+    # FLAT_NETWORK_BRIDGE is not used with BareMetal, but we should set it anyway
+    FLAT_NETWORK_BRIDGE_DEFAULT=br100
+    FLAT_INTERFACE=${FLAT_INTERFACE:-eth0}
+    FORCE_DHCP_RELEASE=${FORCE_DHCP_RELEASE:-False}
+    NET_MAN=${NET_MAN:-FlatManager}
+    STUB_NETWORK=${STUB_NETWORK:-False}
 else
     PUBLIC_INTERFACE_DEFAULT=br100
     FLAT_NETWORK_BRIDGE_DEFAULT=br100
@@ -806,6 +814,25 @@ fi
 if is_service_enabled swift; then
     # Install memcached for swift.
     install_package memcached
+fi
+
+# install extra packages for baremetal
+if [[ "$VIRT_DRIVER" = 'baremetal' ]]; then
+   if [[ "$os_PACKAGE" = "deb" ]]; then
+       install_package dnsmasq syslinux ipmitool qemu-kvm open-iscsi busybox tgt
+       # make sure dnsmasq isn't running after we installed it
+       sudo killall dnsmasq || true
+   else
+       # TODO(deva): add support for baremetal devstack on RH/Cent
+       echo_summary "baremetal not supported on this platform yet"
+       exit 1
+   fi
+   # also make sure we have some needed directories
+   sudo mkdir -p /tftpboot
+   sudo mkdir -p /var/lib/nova/baremetal/console
+   sudo mkdir -p /var/lib/nova/baremetal/dnsmasq
+   sudo touch /var/lib/nova/baremetal/dnsmasq/dnsmasq-dhcp.host
+   sudo chown -R stack:stack /var/lib/nova
 fi
 
 TRACK_DEPENDS=${TRACK_DEPENDS:-False}
@@ -1857,6 +1884,7 @@ fi
 add_nova_opt "glance_api_servers=$GLANCE_HOSTPORT"
 add_nova_opt "force_dhcp_release=$FORCE_DHCP_RELEASE"
 
+
 # XenServer
 # ---------
 
@@ -1873,6 +1901,10 @@ if [ "$VIRT_DRIVER" = 'xenserver' ]; then
     # Need to avoid crash due to new firewall support
     XEN_FIREWALL_DRIVER=${XEN_FIREWALL_DRIVER:-"nova.virt.firewall.IptablesFirewallDriver"}
     add_nova_opt "firewall_driver=$XEN_FIREWALL_DRIVER"
+
+# OpenVZ
+# ------
+
 elif [ "$VIRT_DRIVER" = 'openvz' ]; then
     echo_summary "Using OpenVZ virtualization driver"
     # TODO(deva): OpenVZ driver does not yet work if compute_driver is set here.
@@ -1881,11 +1913,26 @@ elif [ "$VIRT_DRIVER" = 'openvz' ]; then
     add_nova_opt "connection_type=openvz"
     LIBVIRT_FIREWALL_DRIVER=${LIBVIRT_FIREWALL_DRIVER:-"nova.virt.libvirt.firewall.IptablesFirewallDriver"}
     add_nova_opt "firewall_driver=$LIBVIRT_FIREWALL_DRIVER"
+
+# Bare Metal
+# ----------
+
 elif [ "$VIRT_DRIVER" = 'baremetal' ]; then
     echo_summary "Using BareMetal driver"
-    add_nova_opt "compute_driver=baremetal.BareMetalDriver"
+    add_nova_opt "compute_driver=nova.virt.baremetal.driver.BareMetalDriver"
     LIBVIRT_FIREWALL_DRIVER=${LIBVIRT_FIREWALL_DRIVER:-"nova.virt.firewall.NoopFirewallDriver"}
     add_nova_opt "firewall_driver=$LIBVIRT_FIREWALL_DRIVER"
+    add_nova_opt "baremetal_driver=nova.virt.baremetal.pxe.PXE"
+    add_nova_opt "baremetal_sql_connection=mysql://$MYSQL_USER:$MYSQL_PASSWORD@localhost/nova_bm?charset=utf8"
+    add_nova_opt "baremetal_tftp_root=/tftpboot"
+    add_nova_opt "instance_type_extra_specs=cpu_arch:x86_64"
+    add_nova_opt "power_manager=nova.virt.baremetal.ipmi.DummyIpmi"
+    add_nova_opt "scheduler_host_manager=nova.scheduler.baremetal_host_manager.BaremetalHostManager"
+    add_nova_opt "scheduler_default_filters=AllHostsFilter"
+
+# Defaults
+# --------
+
 else
     echo_summary "Using libvirt virtualization driver"
     add_nova_opt "compute_driver=libvirt.LibvirtDriver"
