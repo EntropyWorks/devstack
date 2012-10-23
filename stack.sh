@@ -821,7 +821,8 @@ if [[ "$VIRT_DRIVER" = 'baremetal' ]]; then
    if [[ "$os_PACKAGE" = "deb" ]]; then
        install_package dnsmasq syslinux ipmitool qemu-kvm open-iscsi busybox tgt
        # make sure dnsmasq isn't running after we installed it
-       sudo killall dnsmasq || true
+       sudo /etc/init.d/dnsmasq stop
+       sudo update-rc.d dnsmasq disable
    else
        # TODO(deva): add support for baremetal devstack on RH/Cent
        echo_summary "baremetal not supported on this platform yet"
