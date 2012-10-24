@@ -1927,7 +1927,7 @@ elif [ "$VIRT_DRIVER" = 'baremetal' ]; then
     add_nova_opt "baremetal_sql_connection=mysql://$MYSQL_USER:$MYSQL_PASSWORD@localhost/nova_bm?charset=utf8"
     add_nova_opt "baremetal_tftp_root=/tftpboot"
     add_nova_opt "instance_type_extra_specs=cpu_arch:x86_64"
-    add_nova_opt "power_manager=nova.virt.baremetal.ipmi.DummyIpmi"
+    add_nova_opt "power_manager=nova.virt.baremetal.fake.FakePowerManager"
     add_nova_opt "scheduler_host_manager=nova.scheduler.baremetal_host_manager.BaremetalHostManager"
     add_nova_opt "scheduler_default_filters=AllHostsFilter"
 
