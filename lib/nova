@@ -362,6 +362,9 @@ function init_nova() {
     if is_service_enabled mysql && is_service_enabled nova; then
         # (Re)create nova and nova_bm databases
         mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e 'DROP DATABASE IF EXISTS nova;'
+	# Always drop nova_bm so that a) its clean if we're using it and b) its
+	# not accessible if we are not.
+        mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e 'DROP DATABASE IF EXISTS nova_bm;'
 
         # Explicitly use latin1: to avoid lp#829209, nova expects the database to
         # use latin1 by default, and then upgrades the database to utf8 (see the
@@ -373,7 +376,6 @@ function init_nova() {
 
         # (Re)create nova baremetal database
         if [[ "$VIRT_DRIVER" = 'baremetal' ]]; then
-            mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e 'DROP DATABASE IF EXISTS nova_bm;'
             mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e 'CREATE DATABASE nova_bm CHARACTER SET latin1;'
             add_nova_opt "baremetal_sql_connection=mysql://$MYSQL_USER:$MYSQL_PASSWORD@localhost/nova_bm?charset=utf8"
             $NOVA_BIN_DIR/nova-baremetal-manage db sync
