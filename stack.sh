@@ -830,6 +830,7 @@ if [[ "$VIRT_DRIVER" = 'baremetal' ]]; then
    fi
    # also make sure we have some needed directories
    sudo mkdir -p /tftpboot
+   sudo chown -R stack:stack /tftpboot
    sudo mkdir -p /var/lib/nova/baremetal/console
    sudo mkdir -p /var/lib/nova/baremetal/dnsmasq
    sudo touch /var/lib/nova/baremetal/dnsmasq/dnsmasq-dhcp.host
