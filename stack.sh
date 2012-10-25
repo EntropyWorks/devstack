@@ -1924,7 +1924,6 @@ elif [ "$VIRT_DRIVER" = 'baremetal' ]; then
     LIBVIRT_FIREWALL_DRIVER=${LIBVIRT_FIREWALL_DRIVER:-"nova.virt.firewall.NoopFirewallDriver"}
     add_nova_opt "firewall_driver=$LIBVIRT_FIREWALL_DRIVER"
     add_nova_opt "baremetal_driver=nova.virt.baremetal.pxe.PXE"
-    add_nova_opt "baremetal_sql_connection=mysql://$MYSQL_USER:$MYSQL_PASSWORD@localhost/nova_bm?charset=utf8"
     add_nova_opt "baremetal_tftp_root=/tftpboot"
     add_nova_opt "instance_type_extra_specs=cpu_arch:x86_64"
     add_nova_opt "power_manager=nova.virt.baremetal.fake.FakePowerManager"

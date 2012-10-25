@@ -374,6 +374,7 @@ function init_nova() {
 
         # (Re)create nova baremetal database
         if [[ "$VIRT_DRIVER" = 'baremetal' ]]; then
+            add_nova_opt "baremetal_sql_connection=mysql://$MYSQL_USER:$MYSQL_PASSWORD@localhost/nova_bm?charset=utf8"
             mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e 'CREATE DATABASE nova_bm CHARACTER SET latin1;'
             $NOVA_BIN_DIR/nova-baremetal-manage db sync
         fi 
